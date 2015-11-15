@@ -1,0 +1,47 @@
+#utilizzo un sottoinsieme del corpus in formato XML ' acq' contenuto all'interno del pacchetto ' tm'.
+#importo il corpus in R
+rm(list=ls())
+library(tm)
+data(acq)
+
+#costruire un sottoinsieme costituito dai primi 20 documenti di 'acq';
+corpus <- acq[1:20]
+
+#effettuare tutte le operazioni di pre-processing ritenute opportune
+corpus_c <- tm_map(corpus, content_transformer(tolower))
+corpus_c <- tm_map(corpus_c, removeNumbers)
+corpus_c <- tm_map(corpus_c, removeWords, stopwords())
+corpus_c <- tm_map(corpus_c, removePunctuation)
+corpus_c <- tm_map(corpus_c, stripWhitespace)
+
+#costruire la matrice documenti-termini e quella termini-documenti utilizzando la metrica tf
+tdm <- TermDocumentMatrix(corpus_c, control=list(weighing=weightTf))
+dtm <- DocumentTermMatrix(corpus_c, control=list(weighing=weightTf))
+
+#semplificare per entrambe la sparsità;
+tdm_final <- removeSparseTerms(tdm, 0.85)
+dtm_final <- removeSparseTerms(dtm, 0.85) 
+
+#produrre un word cloud dei token più frequenti
+library(wordcloud) 
+findFreqTerms(tdm_final)
+m <- as.matrix(tdm_final)
+####wordfreq <- sort(colSums(m), decreasing=TRUE) ||per matrice dtm||
+wordfreq222 <- sort(rowSums(m), decreasing=TRUE)
+wordcloud(words=names(wordfreq222), freq=wordfreq, random.order=F)
+
+
+#mostrare come effettuare un clustering gerarchico sullo spazio dei documenti
+dist_euclid <- dist(tdm_final, method ="euclidean")
+hc_complete <- hclust(dist_euclid,method="complete")
+plot(hc_complete)
+rect.hclust(hc_complete,k=4, border="red")
+
+
+#aggiunta flat clustering
+set.seed(123)
+flat_cluster <- kmeans(tdm_final, 3, iter.max=50)
+
+flat_cluster$cluster
+flat_cluster$size
+flat_cluster$center

@@ -1,0 +1,43 @@
+library(RTextTools)
+data(USCongress)
+textA <-as.character(USCongress$text[101:130])
+library(tm)
+data("crude")
+
+#Trasformao textA in corpus mediante la libreria 'tm', utilizzando l'opportuno costruttore,
+#ed infine ottenere un unico corpus combinato con crude che contenga tutti i 50 documenti;
+corpusA <- Corpus(VectorSource(textA))
+corpus <- c(corpusA, crude)
+
+#Effettuo tutte le operazioni di pre-processing ritenute opportune
+corpus_clean <- tm_map(corpus, content_transformer(tolower))
+corpus_clean <- tm_map(corpus_clean, removeNumbers )
+corpus_clean <- tm_map(corpus_clean, removeWords, stopwords() )
+corpus_clean <- tm_map(corpus_clean, removePunctuation)
+corpus_clean <- tm_map(corpus_clean, stripWhitespace)
+
+#Costruire la matrice dei termini utilizzando la rappresentazione tf-idf, e semplificarne la
+#sparsità in modo opportuno;
+tdm <- TermDocumentMatrix(corpus_clean, control=list(weighting=weightTfIdf))
+show(tdm)
+tdm_final <-removeSparseTerms(tdm, sparse=0.88)
+
+#Effettuare un clustering sullo spazio dei documenti con tutti i metodi gerarchici noti, e
+#confrontare i risultati
+
+data.frame <-as.data.frame(as.matrix(tdm_final))   ################converto la MATRICE in DATA.FRAME
+
+dist_euclid <- dist(data.frame, method="euclidean")
+dist_block <- dist(data.frame, method="manhattan")
+
+hc_single_euclid <- hclust(dist_euclid, method="single")
+hc_single_man <- hclust(dist_block, method="single")
+
+hc_complete_euclid <-hclust(dist_euclid, method="complete")
+hc_complete_man <- hclust(dist_block, method="complete")
+
+plot(hc_complete_euclid)
+rect.hclust(hc_complete_euclid, k=3)
+
+plot(hc_complete_man)
+rect.hclust(hc_complete_man, k=3)
